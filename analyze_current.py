@@ -64,6 +64,7 @@ week_historical_df = pd.concat([week_pred_past_s, week_actual_s], axis="columns"
     actual_direction=lambda df: df.price_actual_diff.apply(direction),
     correct=lambda df: df.pred_direction == df.actual_direction,
 )
+
 print(f"Hour correct pct: {hour_historical_df.correct.sum()/hour_historical_df.correct.size}")
 print(f"Day correct pct: {day_historical_df.correct.sum()/day_historical_df.correct.size}")
 print(f"Week correct pct: {week_historical_df.correct.sum()/week_historical_df.correct.size}")

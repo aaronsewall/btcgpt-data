@@ -3,12 +3,14 @@ import json
 import numpy as np
 import os
 
+# Location of where output.json content was dumped
 filepath = os.path.join(
     os.path.expanduser("~"), "src/github.com/aaronsewall/btcgpt-data/content-dumps"
 )
 
 
 def direction(price_diff: float) -> np.nan:
+    """Determine price direction given a price diff"""
     if pd.isna(price_diff):
         return np.nan
     elif price_diff == 0:
@@ -18,12 +20,14 @@ def direction(price_diff: float) -> np.nan:
     return "down"
 
 
+# Gather output.json files into a list, sort them from oldest to newest, although the deduplication
+# process doesn't really care.
 outputs = []
-
 for file_ in sorted(os.listdir(filepath), key=lambda x: int(x.split("_")[0]), reverse=True):
     with open(os.path.join(filepath, file_)) as f:
         outputs.append(json.load(f))
 
+# Unroll all of the outputs into single dictionaries with datetime as the key and price as the value
 hour_actuals_dict = {
     l["x"]: l["y"] for o in [o["hour"]["actual"] for o in outputs if "hour" in o] for l in o
 }
@@ -44,6 +48,8 @@ week_actuals_dict = {
 week_pred_pasts_dict = {
     l["x"]: l["y"] for o in [o["week"]["pred_past"] for o in outputs if "week" in o] for l in o
 }
+
+# Construct series from dictionaries
 total_hour_actuals_df = pd.Series(hour_actuals_dict, name="price_actual")
 total_hour_pred_pasts_df = pd.Series(hour_pred_pasts_dict, name="price_pred_past")
 total_day_actuals_df = pd.Series(day_actuals_dict, name="price_actual")
@@ -51,6 +57,7 @@ total_day_pred_pasts_df = pd.Series(day_pred_pasts_dict, name="price_pred_past")
 total_week_actuals_df = pd.Series(week_actuals_dict, name="price_actual")
 total_week_pred_pasts_df = pd.Series(week_pred_pasts_dict, name="price_pred_past")
 
+# Create dataframes for hour, day and week historical models.
 total_hour_historical_df = pd.concat(
     [total_hour_actuals_df, total_hour_pred_pasts_df], axis="columns"
 ).assign(
@@ -81,6 +88,16 @@ total_week_historical_df = pd.concat(
     actual_direction=lambda df: df.price_actual_diff.apply(direction),
     correct=lambda df: df.pred_direction == df.actual_direction,
 )
-print(f"Hour correct pct: {total_hour_historical_df.correct.sum()/total_hour_historical_df.correct.size}")
-print(f"Day correct pct: {total_day_historical_df.correct.sum()/total_day_historical_df.correct.size}")
-print(f"Week correct pct: {total_week_historical_df.correct.sum()/total_week_historical_df.correct.size}")
+
+print(
+    f"Hour correct pct: "
+    f"{total_hour_historical_df.correct.sum()/total_hour_historical_df.correct.size}"
+)
+print(
+    f"Day correct pct: "
+    f"{total_day_historical_df.correct.sum()/total_day_historical_df.correct.size}"
+)
+print(
+    f"Week correct pct: "
+    f"{total_week_historical_df.correct.sum()/total_week_historical_df.correct.size}"
+)
